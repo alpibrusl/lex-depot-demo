@@ -267,6 +267,19 @@ fn original_register(ts_ms :: Int) -> Int {
   })
 }
 
+# What the run established, in the terms a counterparty would use — and, just
+# as deliberately, what it did not.
+fn closing() -> [io] Unit {
+  let __r := rule()
+  let __1 := line("  Every settlement above walks back to a signed meter reading,")
+  let __2 := line("  through the capability that authorised the command that changed it.")
+  let __3 := line("  A command without that authority never reached the charge point.")
+  let __n := line("")
+  let __4 := line("  The baseline remains a model. This makes the flexibility claim")
+  let __5 := line("  checkable and replayable by any party — not true.")
+  line("")
+}
+
 # ---- The run -----------------------------------------------------------
 fn main() -> [io, sql, fs_write, time, crypto] Unit {
   line("")
@@ -283,7 +296,8 @@ fn main() -> [io, sql, fs_write, time, crypto] Unit {
       }
       let acted := act_authority(log, first)
       let __s := act_settle(log, acted)
-      act_tamper(log)
+      let __t := act_tamper(log)
+      closing()
     },
   }
 }

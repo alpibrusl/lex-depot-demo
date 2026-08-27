@@ -3,8 +3,16 @@
 **One depot, one night, three settlements.** The 03:14 curtailment, end to end, on one attested chain — runnable in a few seconds.
 
 ```bash
-lex run --allow-effects io,sql,fs_write,time,crypto,approval src/scenario.lex main
+sh demo/run.sh
 ```
+
+A recording of that run is committed at [`demo/depot.cast`](demo/depot.cast) — about fifteen seconds:
+
+```bash
+asciinema play demo/depot.cast
+```
+
+The program finishes in well under a second. `demo/record.sh` paces the *playback* so it can be watched; nothing about what runs changes.
 
 ## What it shows
 
