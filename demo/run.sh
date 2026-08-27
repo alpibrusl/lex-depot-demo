@@ -6,4 +6,4 @@
 # to anyone watching.
 set -e
 cd "$(dirname "$0")/.."
-lex run --allow-effects io,sql,fs_write,time,crypto,approval src/scenario.lex main | grep -v '^null$'
+lex run --allow-effects io,sql,fs_write,time,crypto,approval,env src/scenario.lex main | grep -v '^null$'

@@ -2,7 +2,7 @@
 # The demo, revealed a line at a time. See demo/record.sh for why.
 set -e
 cd "$(dirname "$0")/.."
-lex run --allow-effects io,sql,fs_write,time,crypto,approval src/scenario.lex main \
+lex run --allow-effects io,sql,fs_write,time,crypto,approval,env src/scenario.lex main \
   | grep -v '^null$' \
   | while IFS= read -r l; do
       printf '%s\n' "$l"

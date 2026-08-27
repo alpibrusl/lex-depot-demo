@@ -15,6 +15,8 @@
 
 import "std.io" as io
 
+import "std.env" as env
+
 import "std.str" as str
 
 import "std.int" as int
@@ -186,11 +188,37 @@ fn act_settle(log :: tlog.Log, applied_id :: Str) -> [io, sql, time, crypto] Uni
   let __2 := kv("flexibility payment", str.concat(int.to_str(flex_kwh), str.concat(" kWh   ", eur(flex_cents))))
   let __3 := kv("baseline used", str.concat(int.to_str(delivered.baseline_w / 1000), str.concat(" kW, metered ", str.concat(int.to_str(delivered.actual_w / 1000), " kW"))))
   let __4 := kv("method", str.concat(bmethod.label(depot.baseline_spec()), str.concat("  fingerprint ", str.slice(fp, 0, 16))))
+  let declared_wh := (depot.full_power_w() - depot.curtailed_w()) * (depot.t_0354() - depot.t_0314()) / 3600000
+  let over := overclaim_pct(delivered.delivered_wh, declared_wh)
+  let __n0 := line("")
+  let __i1 := kv("aggregator invoices", str.concat(int.to_str(declared_wh / 1000), " kWh — the 15 kW shed it asked for at 03:14"))
+  let __i2 := kv("meter says", str.concat(int.to_str(delivered.delivered_wh), " Wh — the 7 kW shed that was actually dispatched"))
+  let __i3 := kv("over-claim", str.concat(int.to_str(over), "%"))
+  let __i4 := line("")
+  let __i5 := line("  the deep shed was HELD in Act 2, so it never reached the meter.")
+  let __i6 := line("  The invoice does not know that. The measurement does — and the")
+  let __i7 := line("  flexibility payment above is the measured figure, not the claimed one.")
+  let __i8 := line("  The percentage is recorded, not enforced: a threshold belongs in a")
+  let __i9 := line("  contract, not in a library.")
   let __n := line("")
   let __w := line("  both derive from the same signed readings. Walking up from either:")
   let __n2 := line("")
   let __walk := show_chain(log, flex_id)
   line("")
+}
+
+# How far a declared volume sits above the measured one, as a percentage of
+# what was measured — the figure `lex-pack-flex/measure.overclaim_pct` records
+# on a real settlement. Computed here rather than imported: lex-pack-flex pulls
+# in six further packages, and this demo earns its "no mocks" claim by depending
+# only on the mechanism packages it is demonstrating. The arithmetic is the
+# same, and short enough to check by eye.
+fn overclaim_pct(measured_wh :: Int, declared_wh :: Int) -> Int {
+  if measured_wh <= 0 {
+    0
+  } else {
+    (declared_wh - measured_wh) * 100 / measured_wh
+  }
 }
 
 fn total_kwh() -> Int {
@@ -218,12 +246,21 @@ fn show_chain(log :: tlog.Log, from_id :: Str) -> [io, sql] Unit {
 # prevents tampering, but that it LOCALISES it. Every reading is re-verified
 # against the charge point's certificate, and the one that no longer matches is
 # named.
-fn act_tamper(log :: tlog.Log) -> [io, sql, time, crypto] Unit {
+#
+# Which reading gets edited is the audience's choice, not the demo's:
+#
+#   TAMPER=03:45 lex run ... src/scenario.lex main
+#
+# Unset, it edits 03:15. A chain that catches a reading the room picked is a
+# harder thing to wave away than one catching a reading the author picked.
+# A time that was never sampled is rejected by name, with the real times
+# listed, rather than quietly tampering with nothing.
+fn act_tamper(log :: tlog.Log) -> [io, sql, time, crypto, env] Unit {
   line("ACT 4  somebody edits a meter value")
   rule()
   let platform_pub := unwrap(ed.public_key_b64(depot.platform_seed()))
   let cert := unwrap(di.issue_cert(depot.charge_point(), "acme-logistics", "charge_point", unwrap(ed.public_key_b64(depot.device_seed())), depot.t_0300(), depot.t_0400() + 86400000, depot.platform_seed()))
-  let target_ts := depot.t_0300() + 15 * 60000
+  let target_ts := tamper_target()
   let before := original_register(target_ts)
   let __e := kv("edit", str.concat(clock(target_ts), str.concat(" register ", str.concat(int.to_str(before), str.concat(" Wh -> ", str.concat(int.to_str(before + 3500), " Wh   (+3.5 kWh of flexibility, worth EUR 0.42)"))))))
   let __n := line("")
@@ -257,6 +294,69 @@ fn act_tamper(log :: tlog.Log) -> [io, sql, time, crypto] Unit {
   line("")
 }
 
+# `TAMPER=HH:MM` picks the reading to edit; unset picks 03:15.
+fn tamper_target() -> [io, env] Int {
+  let fallback_ts := depot.t_0300() + 15 * 60000
+  let requested := match env.get("TAMPER") {
+    None => "",
+    Some(s) => str.trim(s),
+  }
+  if str.is_empty(requested) {
+    fallback_ts
+  } else {
+    match clock_to_ts(requested) {
+      None => reject(requested, fallback_ts),
+      Some(ts) => if is_sample(ts) {
+        ts
+      } else {
+        reject(requested, fallback_ts)
+      },
+    }
+  }
+}
+
+fn reject(requested :: Str, fallback_ts :: Int) -> [io] Int {
+  let __a := line(str.concat("  TAMPER=", str.concat(requested, " is not a reading taken this night.")))
+  let __b := line(str.concat("  readings exist at: ", str.join(sample_clocks(), ", ")))
+  let __c := line("  editing 03:15 instead.")
+  let __d := line("")
+  fallback_ts
+}
+
+fn sample_clocks() -> List[Str] {
+  list.map(depot.night(), fn (s :: depot.Sample) -> Str {
+    clock(s.ts_ms)
+  })
+}
+
+fn is_sample(ts :: Int) -> Bool {
+  list.fold(depot.night(), false, fn (acc :: Bool, s :: depot.Sample) -> Bool {
+    acc or s.ts_ms == ts
+  })
+}
+
+# "03:45" -> the sample timestamp. None for anything that is not HH:MM.
+fn clock_to_ts(hhmm :: Str) -> Option[Int] {
+  let parts := str.split(hhmm, ":")
+  if list.len(parts) == 2 {
+    match list.head(parts) {
+      None => None,
+      Some(h) => match list.head(list.reverse(parts)) {
+        None => None,
+        Some(m) => match str.to_int(str.trim(h)) {
+          None => None,
+          Some(hh) => match str.to_int(str.trim(m)) {
+            None => None,
+            Some(mm) => Some(depot.t_0200() + ((hh - 2) * 60 + mm) * 60000),
+          },
+        },
+      },
+    }
+  } else {
+    None
+  }
+}
+
 fn original_register(ts_ms :: Int) -> Int {
   list.fold(depot.night(), 0, fn (acc :: Int, s :: depot.Sample) -> Int {
     if s.ts_ms == ts_ms {
@@ -281,7 +381,7 @@ fn closing() -> [io] Unit {
 }
 
 # ---- The run -----------------------------------------------------------
-fn main() -> [io, sql, fs_write, time, crypto] Unit {
+fn main() -> [io, sql, fs_write, time, crypto, env] Unit {
   line("")
   line("  ONE DEPOT, ONE NIGHT, THREE SETTLEMENTS")
   line("  depot-north — 18 vans on a congestion-constrained connection")

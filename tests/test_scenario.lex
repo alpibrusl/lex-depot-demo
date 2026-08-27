@@ -8,6 +8,8 @@
 #   a shallower one within the unattended limit IS run
 #   the two settlements are different quantities off the same readings
 #   an edited reading is localised to the reading that was edited
+#   the over-claim is the gap between what was invoiced and what was measured
+#   the operator's choice of reading to edit is honoured, or refused by name
 #
 # If any of that stops being true, this goes red before the demo does.
 
@@ -38,6 +40,8 @@ import "lex-baseline/src/compute" as bcompute
 import "../src/depot" as depot
 
 import "../src/chain" as chain
+
+import "../src/scenario" as scenario
 
 fn pass() -> Result[Unit, Str] {
   Ok(())
@@ -191,8 +195,44 @@ fn test_an_edited_reading_is_localised() -> [crypto] Result[Unit, Str] {
 # `lex test` calls `run_all` and DISCARDS what it returns (lex-lang#757), so a
 # returned failure count reports `ok` however many assertions failed. This
 # prints each failure by name and then raises.
+# The number Act 3 puts next to the invoice. 10 kWh claimed against 4666 Wh
+# measured is a 114% over-claim; if that arithmetic drifts, the demo is
+# asserting something false to a room that cannot check it.
+fn test_the_overclaim_is_the_gap_between_claimed_and_measured() -> Result[Unit, Str] {
+  let over := scenario.overclaim_pct(delivered_wh(), 10000)
+  assert_true(over == 114, str.concat("10kWh claimed against a measured 4666Wh is a 114% over-claim, got ", int.to_str(over)))
+}
+
+# A window that measured nothing must not report an infinite over-claim, and
+# must not divide by zero.
+fn test_an_unmeasured_window_claims_nothing() -> Result[Unit, Str] {
+  assert_true(scenario.overclaim_pct(0, 10000) == 0, "an unmeasured window reports no over-claim rather than dividing by zero")
+}
+
+# TAMPER=HH:MM resolves to the sample at that time.
+fn test_the_operators_clock_resolves_to_a_reading() -> Result[Unit, Str] {
+  match scenario.clock_to_ts("03:45") {
+    None => Err("03:45 must parse"),
+    Some(ts) => assert_true(ts == depot.t_0200() + 105 * 60000 and scenario.is_sample(ts), "03:45 resolves to a reading that was actually taken"),
+  }
+}
+
+# Anything that is not a time, and any time that was never sampled, is refused
+# rather than silently tampering with nothing.
+fn test_a_time_that_was_never_sampled_is_refused() -> Result[Unit, Str] {
+  let unsampled := match scenario.clock_to_ts("03:07") {
+    None => false,
+    Some(ts) => scenario.is_sample(ts),
+  }
+  let garbage := match scenario.clock_to_ts("banana") {
+    None => true,
+    Some(_) => false,
+  }
+  assert_true(not unsampled and garbage, "03:07 was never sampled and \"banana\" is not a clock — both are refused")
+}
+
 fn results() -> [sql, fs_write, time, crypto] List[(Str, Result[Unit, Str])] {
-  [("the_deep_shed_is_held_not_run", test_the_deep_shed_is_held_not_run()), ("the_shallower_shed_is_allowed", test_the_shallower_shed_is_allowed()), ("a_command_with_no_capability_is_refused", test_a_command_with_no_capability_is_refused()), ("a_capability_from_another_issuer_is_refused", test_a_capability_from_another_issuer_is_refused()), ("the_flexibility_volume_is_what_the_meter_shows", test_the_flexibility_volume_is_what_the_meter_shows()), ("the_energy_bill_and_the_flex_payment_are_different_quantities", test_the_energy_bill_and_the_flex_payment_are_different_quantities()), ("the_method_fingerprint_is_stable", test_the_method_fingerprint_is_stable()), ("an_edited_reading_is_localised", test_an_edited_reading_is_localised())]
+  [("the_deep_shed_is_held_not_run", test_the_deep_shed_is_held_not_run()), ("the_shallower_shed_is_allowed", test_the_shallower_shed_is_allowed()), ("a_command_with_no_capability_is_refused", test_a_command_with_no_capability_is_refused()), ("a_capability_from_another_issuer_is_refused", test_a_capability_from_another_issuer_is_refused()), ("the_flexibility_volume_is_what_the_meter_shows", test_the_flexibility_volume_is_what_the_meter_shows()), ("the_energy_bill_and_the_flex_payment_are_different_quantities", test_the_energy_bill_and_the_flex_payment_are_different_quantities()), ("the_method_fingerprint_is_stable", test_the_method_fingerprint_is_stable()), ("an_edited_reading_is_localised", test_an_edited_reading_is_localised()), ("the_overclaim_is_the_gap_between_claimed_and_measured", test_the_overclaim_is_the_gap_between_claimed_and_measured()), ("an_unmeasured_window_claims_nothing", test_an_unmeasured_window_claims_nothing()), ("the_operators_clock_resolves_to_a_reading", test_the_operators_clock_resolves_to_a_reading()), ("a_time_that_was_never_sampled_is_refused", test_a_time_that_was_never_sampled_is_refused())]
 }
 
 fn report(rs :: List[(Str, Result[Unit, Str])]) -> [io] Int {
