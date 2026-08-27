@@ -33,7 +33,19 @@ The held command is **not dispatched**. No operator is wired in, and `[approval]
 
 **Act 3 — morning.** The energy bill and the flexibility payment, both derived from the same signed readings, with the baseline and the method's fingerprint recorded beside the volume. Walking up from either settlement reaches the authority that permitted the command and the reading it was computed from.
 
+Then the invoice, next to the meter. The aggregator bills for the 15 kW shed it *asked for* at 03:14 — 10 kWh. That shed was held in Act 2 and never reached the charge point; what was dispatched, and metered, is 4666 Wh. The gap is a **114% over-claim**, and the flexibility payment is the measured figure, not the claimed one.
+
+The percentage is recorded, not enforced. A threshold belongs in a contract, not in a library — the point is that over-claiming becomes *visible* and repeatable, not that this decides what to do about it.
+
 **Act 4 — somebody edits a reading.** Not prevention — **localisation**. Every reading is re-verified, and the one that no longer matches its signature is named. The others still verify, so the chain says exactly where the edit was.
+
+**Which** reading gets edited is the room's choice, not the demo's:
+
+```
+TAMPER=03:45 ./demo/run.sh
+```
+
+Readings exist at 02:00 through 03:45, quarter-hourly; unset, it edits 03:15. A time that was never sampled — or anything that is not a clock — is refused by name with the real times listed, rather than quietly tampering with nothing. A chain that localises a reading the audience picked is a harder thing to wave away than one catching a reading the author picked.
 
 ## What is real, and what is staged
 
