@@ -1,0 +1,15 @@
+[package]
+name    = "lex-depot-demo"
+version = "0.1.0"
+lex     = "0.10.11"
+
+# The 03:14 depot curtailment, end to end. Composes the real packages — no
+# mocks — so what the demo shows is what the platform does.
+
+[dependencies]
+lex-schema          = { git = "https://github.com/alpibrusl/lex-schema" }
+lex-crypto          = { git = "https://github.com/alpibrusl/lex-crypto" }
+lex-trail           = { git = "https://github.com/alpibrusl/lex-trail" }
+lex-device-identity = { git = "https://github.com/alpibrusl/lex-device-identity" }
+lex-gridguard       = { git = "https://github.com/alpibrusl/lex-gridguard" }
+lex-baseline        = { git = "https://github.com/alpibrusl/lex-baseline" }

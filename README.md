@@ -1,0 +1,46 @@
+# lex-depot-demo
+
+**One depot, one night, three settlements.** The 03:14 curtailment, end to end, on one attested chain — runnable in a few seconds.
+
+```bash
+lex run --allow-effects io,sql,fs_write,time,crypto,approval src/scenario.lex main
+```
+
+## What it shows
+
+A depot runs 18 electric vans on a connection that cannot carry them all. At 03:14 the aggregator wants to curtail four of them. By morning three parties settle money against that one physical event.
+
+**Act 1 — the meter reports.** Quarter-hourly readings, each signed by the charge point's own key and verifiable offline by anyone holding the platform's public key. The chain starts at the meter, not at a server.
+
+**Act 2 — the aggregator asks.** The same command, presented four ways:
+
+| presented | answer |
+|---|---|
+| with no capability | refused |
+| with a capability from an untrusted issuer | refused |
+| with the real capability, 15 kW shed | **held for review** — within the grant, past the unattended threshold |
+| re-presented as a 7 kW shed | allowed, and dispatched |
+
+The held command is **not dispatched**. No operator is wired in, and `[approval]`'s default sink refuses, so the deep shed simply does not happen — which is what fail-closed means when nobody is there at 03:14. Every one of those four answers is on the record.
+
+**Act 3 — morning.** The energy bill and the flexibility payment, both derived from the same signed readings, with the baseline and the method's fingerprint recorded beside the volume. Walking up from either settlement reaches the authority that permitted the command and the reading it was computed from.
+
+**Act 4 — somebody edits a reading.** Not prevention — **localisation**. Every reading is re-verified, and the one that no longer matches its signature is named. The others still verify, so the chain says exactly where the edit was.
+
+## What is real, and what is staged
+
+**Real:** the capability check ([lex-gridguard](https://github.com/alpibrusl/lex-gridguard)), the signature verification ([lex-device-identity](https://github.com/alpibrusl/lex-device-identity)), the volume computation ([lex-baseline](https://github.com/alpibrusl/lex-baseline)), and the hash chain ([lex-trail](https://github.com/alpibrusl/lex-trail)). No mocks — the demo composes the same packages the services run.
+
+**Staged:** the plumbing that would otherwise be four HTTP services is collapsed into one process, and the clock is fixed so the run prints the same story every time. The event vocabulary is exactly what `lex-csms` and `lex-ems` write in production; this replays it on one in-memory trail so the whole night is visible at once.
+
+The numbers are checkable by hand throughout. A demo whose arithmetic can only be taken on faith is asking for exactly the trust the design exists to remove.
+
+## What it does not claim
+
+The baseline is a model. The chain makes the flexibility claim **checkable and replayable**, not true — a counterparty re-running the named method on the same readings gets the same number, or has found a real disagreement. That is the whole claim, and it is a smaller one than "the dispute goes away".
+
+`tests/test_scenario.lex` pins each thing the run asserts out loud, so the demo cannot drift from its own story without CI going red first.
+
+## License
+
+Matches the rest of the lex ecosystem.
