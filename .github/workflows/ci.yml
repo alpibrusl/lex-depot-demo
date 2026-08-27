@@ -17,4 +17,20 @@ jobs:
       - run: lex ci --no-fmt
       - run: lex fmt --check src tests
       - name: The demo must actually run
-        run: lex run --allow-effects io,sql,fs_write,time,crypto,approval src/scenario.lex main
+        run: lex run --allow-effects io,sql,fs_write,time,crypto,approval,env src/scenario.lex main
+      - name: The operator's chosen reading is the one localised
+        run: |
+          set -euo pipefail
+          E=io,sql,fs_write,time,crypto,approval,env
+          TAMPER=03:45 lex run --allow-effects $E src/scenario.lex main > /tmp/chosen.txt
+          grep -q "signature check fails at 03:45" /tmp/chosen.txt
+          # A time that was never sampled must be refused by name, and must not
+          # silently tamper with nothing.
+          TAMPER=03:07 lex run --allow-effects $E src/scenario.lex main > /tmp/bogus.txt
+          grep -q "TAMPER=03:07 is not a reading taken this night" /tmp/bogus.txt
+          grep -q "signature check fails at 03:15" /tmp/bogus.txt
+      - name: The invoice is measured against the meter
+        run: |
+          set -euo pipefail
+          lex run --allow-effects io,sql,fs_write,time,crypto,approval,env src/scenario.lex main > /tmp/run.txt
+          grep -q "over-claim: 114%" /tmp/run.txt
