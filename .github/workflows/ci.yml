@@ -34,3 +34,8 @@ jobs:
           set -euo pipefail
           lex run --allow-effects io,sql,fs_write,time,crypto,approval,env src/scenario.lex main > /tmp/run.txt
           grep -q "over-claim: 114%" /tmp/run.txt
+          # The banner counts settlements out loud, and once said three when
+          # the chain writes two. tests/ pins the chain; this pins the copy, so
+          # the two cannot drift apart again.
+          grep -q "ONE DEPOT, ONE NIGHT, TWO SETTLEMENTS" /tmp/run.txt
+          grep -q "two settlements, one chain" /tmp/run.txt

@@ -25,6 +25,8 @@ import "lex-crypto/src/ed25519" as ed
 
 import "lex-trail/log" as tlog
 
+import "lex-trail/event" as ev
+
 import "lex-device-identity/src/device_identity" as di
 
 import "lex-gridguard/src/models" as gg
@@ -231,8 +233,40 @@ fn test_a_time_that_was_never_sampled_is_refused() -> Result[Unit, Str] {
   assert_true(not unsampled and garbage, "03:07 was never sampled and \"banana\" is not a clock — both are refused")
 }
 
+# The banner and the README both count settlements out loud, and the count was
+# wrong: they said three when the chain writes two. A demo that exists to catch
+# a 114% over-claim cannot over-claim in its own headline, so the number is
+# pinned here rather than left to whoever edits the copy next.
+#
+# `cdr.issued` is deliberately not counted. A charge detail record is the
+# invoice document; the settlements are the two money movements it and the
+# measurement give rise to.
+fn test_the_chain_writes_exactly_two_settlements() -> [sql, fs_write, time, crypto] Result[Unit, Str] {
+  match tlog.open_memory() {
+    Err(e) => Err(str.concat("open_memory: ", e)),
+    Ok(log) => {
+      let cdr := chain.record_cdr(log, "", 38, 1064)
+      let __e := chain.record_energy_settlement(log, cdr, 38, 1064)
+      let __f := chain.record_flex_settlement(log, cdr, 4, 48, "fp")
+      match tlog.range(log, 0, 9999999999999) {
+        Err(e) => Err(str.concat("range: ", e)),
+        Ok(events) => {
+          let n := list.fold(events, 0, fn (acc :: Int, e :: ev.Event) -> Int {
+            if str.starts_with(e.kind, "settlement.") {
+              acc + 1
+            } else {
+              acc
+            }
+          })
+          assert_true(n == 2, str.concat("a settled night writes exactly two settlements — energy and flex; got ", int.to_str(n)))
+        },
+      }
+    },
+  }
+}
+
 fn results() -> [sql, fs_write, time, crypto] List[(Str, Result[Unit, Str])] {
-  [("the_deep_shed_is_held_not_run", test_the_deep_shed_is_held_not_run()), ("the_shallower_shed_is_allowed", test_the_shallower_shed_is_allowed()), ("a_command_with_no_capability_is_refused", test_a_command_with_no_capability_is_refused()), ("a_capability_from_another_issuer_is_refused", test_a_capability_from_another_issuer_is_refused()), ("the_flexibility_volume_is_what_the_meter_shows", test_the_flexibility_volume_is_what_the_meter_shows()), ("the_energy_bill_and_the_flex_payment_are_different_quantities", test_the_energy_bill_and_the_flex_payment_are_different_quantities()), ("the_method_fingerprint_is_stable", test_the_method_fingerprint_is_stable()), ("an_edited_reading_is_localised", test_an_edited_reading_is_localised()), ("the_overclaim_is_the_gap_between_claimed_and_measured", test_the_overclaim_is_the_gap_between_claimed_and_measured()), ("an_unmeasured_window_claims_nothing", test_an_unmeasured_window_claims_nothing()), ("the_operators_clock_resolves_to_a_reading", test_the_operators_clock_resolves_to_a_reading()), ("a_time_that_was_never_sampled_is_refused", test_a_time_that_was_never_sampled_is_refused())]
+  [("the_deep_shed_is_held_not_run", test_the_deep_shed_is_held_not_run()), ("the_shallower_shed_is_allowed", test_the_shallower_shed_is_allowed()), ("a_command_with_no_capability_is_refused", test_a_command_with_no_capability_is_refused()), ("a_capability_from_another_issuer_is_refused", test_a_capability_from_another_issuer_is_refused()), ("the_flexibility_volume_is_what_the_meter_shows", test_the_flexibility_volume_is_what_the_meter_shows()), ("the_energy_bill_and_the_flex_payment_are_different_quantities", test_the_energy_bill_and_the_flex_payment_are_different_quantities()), ("the_method_fingerprint_is_stable", test_the_method_fingerprint_is_stable()), ("an_edited_reading_is_localised", test_an_edited_reading_is_localised()), ("the_chain_writes_exactly_two_settlements", test_the_chain_writes_exactly_two_settlements()), ("the_overclaim_is_the_gap_between_claimed_and_measured", test_the_overclaim_is_the_gap_between_claimed_and_measured()), ("an_unmeasured_window_claims_nothing", test_an_unmeasured_window_claims_nothing()), ("the_operators_clock_resolves_to_a_reading", test_the_operators_clock_resolves_to_a_reading()), ("a_time_that_was_never_sampled_is_refused", test_a_time_that_was_never_sampled_is_refused())]
 }
 
 fn report(rs :: List[(Str, Result[Unit, Str])]) -> [io] Int {
