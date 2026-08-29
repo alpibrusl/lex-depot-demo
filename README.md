@@ -1,10 +1,12 @@
 # lex-depot-demo
 
-**One depot, one night, three settlements.** The 03:14 curtailment, end to end, on one attested chain — runnable in a few seconds.
+**One depot, one night, two settlements.** The 03:14 curtailment, end to end, on one attested chain — runnable in a few seconds.
 
 ```bash
 sh demo/run.sh
 ```
+
+Needs `lex` on your PATH — a [release binary](https://github.com/alpibrusl/lex-lang/releases) is enough, no build required. Dependencies are fetched on first run; nothing else to install.
 
 A recording of that run is committed at [`demo/depot.cast`](demo/depot.cast) — about fifteen seconds:
 
@@ -12,11 +14,13 @@ A recording of that run is committed at [`demo/depot.cast`](demo/depot.cast) —
 asciinema play demo/depot.cast
 ```
 
+(needs [asciinema](https://asciinema.org); the recording is a plain text-format file, so `cat` it if you would rather not install one more thing)
+
 The program finishes in well under a second. `demo/record.sh` paces the *playback* so it can be watched; nothing about what runs changes.
 
 ## What it shows
 
-A depot runs 18 electric vans on a connection that cannot carry them all. At 03:14 the aggregator wants to curtail four of them. By morning three parties settle money against that one physical event.
+A depot runs 18 electric vans on a connection that cannot carry them all. At 03:14 the aggregator wants to curtail four of them. By morning two settlements are made against that one physical event — the depot pays for energy, the aggregator pays for flexibility.
 
 **Act 1 — the meter reports.** Quarter-hourly readings, each signed by the charge point's own key and verifiable offline by anyone holding the platform's public key. The chain starts at the meter, not at a server.
 
@@ -51,7 +55,7 @@ Readings exist at 02:00 through 03:45, quarter-hourly; unset, it edits 03:15. A 
 
 **Real:** the capability check ([lex-gridguard](https://github.com/alpibrusl/lex-gridguard)), the signature verification ([lex-device-identity](https://github.com/alpibrusl/lex-device-identity)), the volume computation ([lex-baseline](https://github.com/alpibrusl/lex-baseline)), and the hash chain ([lex-trail](https://github.com/alpibrusl/lex-trail)). No mocks — the demo composes the same packages the services run.
 
-**Staged:** the plumbing that would otherwise be four HTTP services is collapsed into one process, and the clock is fixed so the run prints the same story every time. The event vocabulary is exactly what `lex-csms` and `lex-ems` write in production; this replays it on one in-memory trail so the whole night is visible at once.
+**Staged:** the plumbing that would otherwise be four HTTP services is collapsed into one process, and the clock is fixed so the run prints the same story every time. The event vocabulary is mostly, but not entirely, production's. Of the eight kinds on the chain: `meter.reading`, `curtail.command`, `curtail.applied` and `cdr.issued` are what `lex-csms` and `lex-ems` write; `grid.intent`, `grid.allowed` and `grid.denied` come from `lex-gridguard` and are written by whatever service mounts the gate; **`settlement.energy` and `settlement.flex` are this demo's own** — the settlement step is the part of the chain not yet wired into a running service, so those two kinds exist here and nowhere else. This replays the lot on one in-memory trail so the whole night is visible at once.
 
 The numbers are checkable by hand throughout. A demo whose arithmetic can only be taken on faith is asking for exactly the trust the design exists to remove.
 
@@ -62,7 +66,6 @@ The baseline is a model. The chain makes the flexibility claim **checkable and r
 `tests/test_scenario.lex` pins each thing the run asserts out loud, so the demo cannot drift from its own story without CI going red first.
 
 ## License
-
 
 Copyright (c) 2026 lex-depot-demo contributors.
 

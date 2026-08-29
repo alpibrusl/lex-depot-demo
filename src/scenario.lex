@@ -165,9 +165,9 @@ fn act_authority(log :: tlog.Log, reading_id :: Str) -> [io, sql, time, crypto] 
   applied
 }
 
-# ---- Act 3 — morning, and three numbers ---------------------------------
+# ---- Act 3 — morning, and two settlements -------------------------------
 fn act_settle(log :: tlog.Log, applied_id :: Str) -> [io, sql, time, crypto] Unit {
-  line("ACT 3  morning — three settlements, one chain")
+  line("ACT 3  morning — two settlements, one chain")
   rule()
   let readings := list.map(depot.night(), fn (s :: depot.Sample) -> bmethod.Reading {
     { ts_ms: s.ts_ms, w: s.power_w }
@@ -383,7 +383,7 @@ fn closing() -> [io] Unit {
 # ---- The run -----------------------------------------------------------
 fn main() -> [io, sql, fs_write, time, crypto, env] Unit {
   line("")
-  line("  ONE DEPOT, ONE NIGHT, THREE SETTLEMENTS")
+  line("  ONE DEPOT, ONE NIGHT, TWO SETTLEMENTS")
   line("  depot-north — 18 vans on a congestion-constrained connection")
   line("")
   match tlog.open_memory() {
