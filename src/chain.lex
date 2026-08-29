@@ -54,6 +54,10 @@ fn kind_settlement_energy() -> Str {
   "settlement.energy"
 }
 
+fn kind_settlement_grid() -> Str {
+  "settlement.grid"
+}
+
 fn kind_settlement_flex() -> Str {
   "settlement.flex"
 }
@@ -118,5 +122,13 @@ fn record_energy_settlement(log :: tlog.Log, parent :: Str, kwh :: Int, eur_cent
 
 fn record_flex_settlement(log :: tlog.Log, parent :: Str, kwh :: Int, eur_cents :: Int, fingerprint :: Str) -> [sql, time] Str {
   append(log, kind_settlement_flex(), parent, jv.stringify(JObj([("payer", JStr(depot.aggregator())), ("kwh", JInt(kwh)), ("eur_cents", JInt(eur_cents)), ("method_fingerprint", JStr(fingerprint))])))
+}
+
+# The DSO pays the aggregator for relief procured. `claimed_kwh` is what the
+# aggregator invoiced, which is NOT required to equal the measured volume the
+# aggregator pays the depot for — recording both is the whole point: the gap
+# between them is visible on one chain, to a party that was not in the room.
+fn record_grid_settlement(log :: tlog.Log, parent :: Str, claimed_kwh :: Int, eur_cents :: Int) -> [sql, time] Str {
+  append(log, kind_settlement_grid(), parent, jv.stringify(JObj([("payer", JStr(depot.grid_operator())), ("payee", JStr(depot.aggregator())), ("claimed_kwh", JInt(claimed_kwh)), ("eur_cents", JInt(eur_cents))])))
 }
 

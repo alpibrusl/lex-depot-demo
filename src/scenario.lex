@@ -165,9 +165,9 @@ fn act_authority(log :: tlog.Log, reading_id :: Str) -> [io, sql, time, crypto] 
   applied
 }
 
-# ---- Act 3 — morning, and two settlements -------------------------------
+# ---- Act 3 — morning, and three settlements -----------------------------
 fn act_settle(log :: tlog.Log, applied_id :: Str) -> [io, sql, time, crypto] Unit {
-  line("ACT 3  morning — two settlements, one chain")
+  line("ACT 3  morning — three settlements, one chain")
   rule()
   let readings := list.map(depot.night(), fn (s :: depot.Sample) -> bmethod.Reading {
     { ts_ms: s.ts_ms, w: s.power_w }
@@ -194,16 +194,26 @@ fn act_settle(log :: tlog.Log, applied_id :: Str) -> [io, sql, time, crypto] Uni
   let __i1 := kv("aggregator invoices", str.concat(int.to_str(declared_wh / 1000), " kWh — the 15 kW shed it asked for at 03:14"))
   let __i2 := kv("meter says", str.concat(int.to_str(delivered.delivered_wh), " Wh — the 7 kW shed that was actually dispatched"))
   let __i3 := kv("over-claim", str.concat(int.to_str(over), "%"))
+  let grid_cents := declared_wh / 1000 * depot.eur_per_kwh_grid()
+  let grid_id := chain.record_grid_settlement(log, flex_id, declared_wh / 1000, grid_cents)
   let __i4 := line("")
-  let __i5 := line("  the deep shed was HELD in Act 2, so it never reached the meter.")
-  let __i6 := line("  The invoice does not know that. The measurement does — and the")
-  let __i7 := line("  flexibility payment above is the measured figure, not the claimed one.")
-  let __i8 := line("  The percentage is recorded, not enforced: a threshold belongs in a")
-  let __i9 := line("  contract, not in a library.")
+  let __i5 := kv("the DSO pays the aggregator", str.concat(int.to_str(declared_wh / 1000), str.concat(" kWh   ", str.concat(eur(grid_cents), " — on the claim"))))
+  let __i6 := kv("the aggregator pays the depot", str.concat(int.to_str(flex_kwh), str.concat(" kWh   ", str.concat(eur(flex_cents), " — on the meter"))))
+  let __i7 := kv("kept on the gap", eur(grid_cents - flex_cents))
+  let __i8 := line("")
+  let __i9 := line("  the deep shed was HELD in Act 2, so it never reached the meter. The")
+  let __ia := line("  aggregator is paid upstream for a shed that did not happen, and pays")
+  let __ib := line("  downstream for the one that did. Both sides are on this chain, and the")
+  let __ic := line("  DSO — who was never in the room — can walk it.")
+  let __id := line("")
+  let __ie := line("  The percentage is recorded, not enforced: a threshold belongs in a")
+  let __if := line("  contract, not in a library.")
   let __n := line("")
-  let __w := line("  both derive from the same signed readings. Walking up from either:")
   let __n2 := line("")
-  let __walk := show_chain(log, flex_id)
+  let __w := line("  all three derive from the same signed readings. Walking up from the")
+  let __w2 := line("  DSO's payment — the furthest party from the meter:")
+  let __n3 := line("")
+  let __walk := show_chain(log, grid_id)
   line("")
 }
 
@@ -383,7 +393,7 @@ fn closing() -> [io] Unit {
 # ---- The run -----------------------------------------------------------
 fn main() -> [io, sql, fs_write, time, crypto, env] Unit {
   line("")
-  line("  ONE DEPOT, ONE NIGHT, TWO SETTLEMENTS")
+  line("  ONE DEPOT, ONE NIGHT, THREE SETTLEMENTS")
   line("  depot-north — 18 vans on a congestion-constrained connection")
   line("")
   match tlog.open_memory() {
