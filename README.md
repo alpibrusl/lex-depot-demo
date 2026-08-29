@@ -67,4 +67,8 @@ The baseline is a model. The chain makes the flexibility claim **checkable and r
 
 ## License
 
-The lex toolchain is [EUPL-1.2](https://github.com/alpibrusl/lex-lang/blob/main/LICENSE). This repository ships no LICENSE file of its own, as is currently true of the other `lex-*` packages it depends on — so treat the licensing as unsettled rather than inherited.
+
+Copyright (c) 2026 lex-depot-demo contributors.
+
+Licensed under the [EUPL-1.2](LICENSE) — the European Union Public Licence, as used across the `lex-*` ecosystem.
+
