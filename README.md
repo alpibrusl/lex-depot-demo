@@ -67,7 +67,6 @@ The baseline is a model. The chain makes the flexibility claim **checkable and r
 
 ## License
 
-
 Copyright (c) 2026 lex-depot-demo contributors.
 
 Licensed under the [EUPL-1.2](LICENSE) — the European Union Public Licence, as used across the `lex-*` ecosystem.
