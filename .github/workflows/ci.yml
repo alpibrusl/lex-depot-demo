@@ -37,5 +37,8 @@ jobs:
           # The banner counts settlements out loud, and once said three when
           # the chain writes two. tests/ pins the chain; this pins the copy, so
           # the two cannot drift apart again.
-          grep -q "ONE DEPOT, ONE NIGHT, TWO SETTLEMENTS" /tmp/run.txt
-          grep -q "two settlements, one chain" /tmp/run.txt
+          grep -q "ONE DEPOT, ONE NIGHT, THREE SETTLEMENTS" /tmp/run.txt
+          grep -q "three settlements, one chain" /tmp/run.txt
+          # The margin is the point of the third settlement: paid on the claim
+          # upstream, paying on the meter downstream.
+          grep -q "kept on the gap: EUR 1.32" /tmp/run.txt

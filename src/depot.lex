@@ -60,6 +60,14 @@ fn aggregator() -> Str {
   "aggregator-a"
 }
 
+# The party that wanted the congestion relieved, and pays for it. Named here
+# because the flex chain runs DSO -> aggregator -> depot: the aggregator is an
+# intermediary, and a demo that shows it paying the depot without showing
+# anyone paying IT leaves the money coming from nowhere.
+fn grid_operator() -> Str {
+  "dso-noord"
+}
+
 fn contract() -> Str {
   "FLEX-2026-11"
 }
@@ -157,6 +165,13 @@ fn baseline_spec() -> bmethod.Spec {
 
 fn eur_per_kwh_energy() -> Int {
   28
+}
+
+# What the DSO pays the aggregator per kWh of relief. Above the flex rate the
+# aggregator pays the depot — that spread is the intermediary's margin, and it
+# is what makes an over-claim worth making.
+fn eur_per_kwh_grid() -> Int {
+  18
 }
 
 fn eur_per_kwh_flex() -> Int {
