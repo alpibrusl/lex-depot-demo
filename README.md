@@ -77,11 +77,17 @@ This replays the lot on one in-memory trail so the whole night is visible at onc
 
 The numbers are checkable by hand throughout. A demo whose arithmetic can only be taken on faith is asking for exactly the trust the design exists to remove.
 
-## What it does not claim
+## Keeping the demo honest
 
-The baseline is a model. The chain makes the flexibility claim **checkable and replayable**, not true — a counterparty re-running the named method on the same readings gets the same number, or has found a real disagreement. That is the whole claim, and it is a smaller one than "the dispute goes away".
+`tests/test_scenario.lex` pins each thing the run asserts out loud — the held command, the settlement count, the 114% over-claim, the EUR 1.32 the intermediary keeps — so the demo cannot drift from its own story without CI going red first. Every assertion is mutation-checked: changing the value it pins turns the suite red.
 
-`tests/test_scenario.lex` pins each thing the run asserts out loud, so the demo cannot drift from its own story without CI going red first.
+## What this establishes, and what it doesn't
+
+**Established.** Every figure above walks back to a meter reading signed by the charge point, through the capability that authorised the command that produced it. A command without that authority never reached the charge point. Two parties settling on the same event — three, counting the DSO — read the same chain, and an edited reading is localised to the reading that was edited.
+
+**Not established.** The baseline is a model. A counterparty re-running the named method on the same readings gets the same number, or has found a real disagreement worth having — that is what "checkable and replayable" buys, and it is not the same as "true". No amount of signing makes a counterfactual (*what the depot would have drawn*) into a measurement.
+
+So this shortens the argument rather than ending it. The parties still have to agree a method; what they no longer have to agree is what the meter said, who authorised the command, or which number came from where.
 
 ## License
 
